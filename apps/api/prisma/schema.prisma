@@ -1,0 +1,16 @@
+// LocalIA — Prisma schema
+//
+// Sprint 0: solo la configuración de datasource/generator, sin modelos de
+// negocio. El primer modelo real (`Tenant`) se agrega en el Sprint 1 — ver
+// Database Specification §4 y Backend Architecture Specification §17 para la
+// convención de conexión pooleada (`url`) vs. directa (`directUrl`).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
