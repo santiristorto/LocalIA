@@ -1,4 +1,21 @@
+import dotenv from "dotenv";
 import { z } from "zod";
+
+/**
+ * Carga `apps/api/.env` hacia `process.env` — sin esto, `loadEnv()` de más
+ * abajo solo ve las variables que el shell/orquestador ya tenía exportadas,
+ * nunca las del archivo `.env` (ni `tsx` ni `node` lo hacen automáticamente).
+ *
+ * `dotenv.config()` NUNCA sobreescribe una variable que ya exista en
+ * `process.env` — así, en producción, las variables inyectadas por la
+ * plataforma (Render, GitHub Actions, etc.) siempre ganan por sobre un
+ * `.env` que, de todos modos, no debería existir fuera de desarrollo local.
+ *
+ * Se ejecuta acá, en el módulo que define el esquema, en vez de en
+ * `server.ts` — así cualquier entrypoint futuro (workers, scripts, tests)
+ * que importe `env.ts` queda cubierto sin tener que acordarse de repetirlo.
+ */
+dotenv.config();
 
 /**
  * Esquema de variables de entorno de `apps/api`.

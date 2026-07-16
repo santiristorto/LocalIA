@@ -17,6 +17,7 @@
     "@localia/types": "workspace:*",
     "@prisma/client": "^6.1.0",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "helmet": "^8.0.0",
     "jose": "^5.9.6",

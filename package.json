@@ -29,8 +29,11 @@
     "typescript": "^5.7.2"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix"
+    "apps/api/**/*.ts": [
+      "eslint --fix --config apps/api/eslint.config.cjs"
+    ],
+    "apps/web/**/*.{ts,tsx}": [
+      "eslint --fix --config apps/web/eslint.config.cjs"
     ],
     "*.{ts,tsx,js,jsx,json,md,yml,yaml}": [
       "prettier --write"
