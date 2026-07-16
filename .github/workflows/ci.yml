@@ -33,6 +33,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Tests
+        run: pnpm test
+
       - name: Generar Prisma Client
         run: pnpm --filter @localia/api prisma:generate
 

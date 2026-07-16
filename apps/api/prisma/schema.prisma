@@ -1,9 +1,13 @@
 // LocalIA — Prisma schema
 //
-// Sprint 0: solo la configuración de datasource/generator, sin modelos de
-// negocio. El primer modelo real (`Tenant`) se agrega en el Sprint 1 — ver
-// Database Specification §4 y Backend Architecture Specification §17 para la
-// convención de conexión pooleada (`url`) vs. directa (`directUrl`).
+// Sprint 1A: primer modelo real, `Profile`. Backend Architecture Specification
+// §9 — reemplaza la tabla `users` del Database Specification original: la
+// identidad y las contraseñas las gestiona Supabase Auth (`auth.users`, fuera
+// del control de Prisma); `profiles` guarda únicamente los datos de negocio
+// complementarios, con `id` compartido 1:1 con `auth.users.id`.
+//
+// `tenants` / `tenant_users` (y por lo tanto cualquier tabla tenant-scoped)
+// se agregan en el próximo sprint, cuando exista el concepto de comercio.
 
 generator client {
   provider = "prisma-client-js"
@@ -13,4 +17,22 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+/// Perfil de negocio de un usuario — Backend Architecture Specification §9.
+/// `id` es el mismo UUID que `auth.users.id`; la fila se crea automáticamente
+/// vía trigger de Postgres al registrarse (ver migración
+/// `002_profiles_auth_trigger`), nunca desde un endpoint propio del backend.
+model Profile {
+  id            String   @id @db.Uuid
+  fullName      String   @map("full_name")
+  avatarUrl     String?  @map("avatar_url")
+  isSuperAdmin  Boolean  @default(false) @map("is_super_admin")
+  mfaEnabled    Boolean  @default(false) @map("mfa_enabled")
+  locale        String   @default("es-AR")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  @@map("profiles")
 }

@@ -8,13 +8,15 @@ import {
   notFoundHandler,
 } from "./core/middlewares/error-handler.js";
 import { requestContext } from "./core/middlewares/request-context.js";
+import { authRouter } from "./modules/auth/auth.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 
 /**
  * Ensamblado de la aplicación — Backend Architecture Specification §2/§9.
  *
- * Orden de la cadena de middlewares globales (no confundir con la cadena de
- * autenticación por ruta, que se agrega recién en el Sprint 2):
+ * Orden de la cadena de middlewares globales (la cadena de autenticación
+ * — `authenticate` + `authorize` — se aplica por ruta, dentro de cada
+ * `*.routes.ts`, no acá):
  *   1. Seguridad de cabeceras (helmet) y CORS
  *   2. Parseo de JSON
  *   3. Contexto de request (correlationId + logger)
@@ -33,6 +35,7 @@ export function createApp(): Express {
   // Versionado de API — API Specification §1.1.
   const v1 = express.Router();
   v1.use(healthRouter);
+  v1.use(authRouter);
   app.use("/api/v1", v1);
 
   app.use(notFoundHandler);

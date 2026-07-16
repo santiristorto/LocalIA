@@ -1,13 +1,13 @@
+import { env } from "./env.ts";
+import { supabase } from "./supabase-client.ts";
+
 /**
  * Cliente HTTP mínimo — Frontend Architecture Specification §3 (`shared/lib`).
  *
- * Sprint 0: solo lo necesario para verificar la conexión con el backend
- * (healthcheck). Se amplía en el Sprint 1 en adelante con manejo de auth,
- * `X-Tenant-Id`, y el envelope de error estándar (API Specification §1.4).
+ * Sprint 1A: agrega el header `Authorization` con el access token de la
+ * sesión de Supabase cuando existe. El resto de las convenciones (envelope
+ * de error estándar, `X-Tenant-Id`) se agregan cuando exista multi-tenancy.
  */
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api/v1";
-
 export interface HealthResponse {
   success: true;
   data: {
@@ -17,12 +17,47 @@ export interface HealthResponse {
   };
 }
 
+export interface MeResponse {
+  success: true;
+  data: {
+    id: string;
+    email: string | null;
+    fullName: string | null;
+  };
+}
+
+export interface ApiErrorBody {
+  success: false;
+  error: { code: string; message: string; details?: unknown };
+}
+
+async function authHeaders(): Promise<HeadersInit> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
 export async function fetchHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${API_BASE_URL}/health`);
+  const response = await fetch(`${env.apiBaseUrl}/health`);
 
   if (!response.ok) {
     throw new Error(`Healthcheck falló con status ${response.status}`);
   }
 
   return (await response.json()) as HealthResponse;
+}
+
+export async function fetchMe(): Promise<MeResponse> {
+  const response = await fetch(`${env.apiBaseUrl}/me`, {
+    headers: await authHeaders(),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json()) as ApiErrorBody;
+    throw new Error(body.error.message);
+  }
+
+  return (await response.json()) as MeResponse;
 }
