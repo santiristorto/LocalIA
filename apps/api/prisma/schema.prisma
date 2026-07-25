@@ -1,13 +1,13 @@
 // LocalIA — Prisma schema
 //
-// Sprint 1A: primer modelo real, `Profile`. Backend Architecture Specification
-// §9 — reemplaza la tabla `users` del Database Specification original: la
-// identidad y las contraseñas las gestiona Supabase Auth (`auth.users`, fuera
-// del control de Prisma); `profiles` guarda únicamente los datos de negocio
-// complementarios, con `id` compartido 1:1 con `auth.users.id`.
+// Sprint 1A: `Profile`, reemplaza la tabla `users` del Database Specification
+// original — la identidad y las contraseñas las gestiona Supabase Auth
+// (`auth.users`, fuera del control de Prisma); `profiles` guarda únicamente
+// los datos de negocio complementarios, con `id` compartido 1:1 con
+// `auth.users.id`.
 //
-// `tenants` / `tenant_users` (y por lo tanto cualquier tabla tenant-scoped)
-// se agregan en el próximo sprint, cuando exista el concepto de comercio.
+// Sprint 1B: `Tenant` / `TenantUser` — Database Specification §3.2/§4. El
+// onboarding del comercio crea ambas filas en una sola transacción.
 
 generator client {
   provider = "prisma-client-js"
@@ -22,17 +22,113 @@ datasource db {
 /// Perfil de negocio de un usuario — Backend Architecture Specification §9.
 /// `id` es el mismo UUID que `auth.users.id`; la fila se crea automáticamente
 /// vía trigger de Postgres al registrarse (ver migración
-/// `002_profiles_auth_trigger`), nunca desde un endpoint propio del backend.
+/// `20260715000002_profiles_auth_trigger`), nunca desde un endpoint propio
+/// del backend.
 model Profile {
-  id            String   @id @db.Uuid
-  fullName      String   @map("full_name")
-  avatarUrl     String?  @map("avatar_url")
-  isSuperAdmin  Boolean  @default(false) @map("is_super_admin")
-  mfaEnabled    Boolean  @default(false) @map("mfa_enabled")
-  locale        String   @default("es-AR")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  id           String    @id @db.Uuid
+  fullName     String    @map("full_name")
+  avatarUrl    String?   @map("avatar_url")
+  isSuperAdmin Boolean   @default(false) @map("is_super_admin")
+  mfaEnabled   Boolean   @default(false) @map("mfa_enabled")
+  locale       String    @default("es-AR")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  tenantUsers TenantUser[]
 
   @@map("profiles")
+}
+
+enum BusinessVertical {
+  restaurant
+  cafe
+  gym
+  salon
+  clinic
+  retail_services
+  other
+
+  @@map("business_vertical")
+}
+
+enum TenantStatus {
+  trial
+  active
+  suspended
+  cancelled
+
+  @@map("tenant_status")
+}
+
+/// El comercio — Database Specification §4, extendida en el Sprint 1B con
+/// los campos que pide el formulario de onboarding (descripción, contacto,
+/// ubicación, horario semanal, marca) que no estaban en la primera versión.
+model Tenant {
+  id                  String            @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String            @unique
+  businessVertical    BusinessVertical  @map("business_vertical")
+  status              TenantStatus      @default(trial)
+  description         String?
+  phone               String?
+  contactEmail        String?           @map("contact_email")
+  address             String?
+  city                String?
+  province            String?
+  country             String            @default("Argentina")
+  timezone            String            @default("America/Argentina/Buenos_Aires")
+  /// Horario semanal — forma: `{ mon: { isOpen, open, close }, ... }`
+  /// (`packages/types/src/tenants.ts` → `openingHoursSchema`).
+  openingHours         Json?            @map("opening_hours")
+  logoUrl              String?          @map("logo_url")
+  brandPrimaryColor    String?          @map("brand_primary_color")
+  brandSecondaryColor  String?          @map("brand_secondary_color")
+  trialEndsAt          DateTime?        @map("trial_ends_at")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  deletedAt            DateTime?        @map("deleted_at")
+
+  tenantUsers TenantUser[]
+
+  @@map("tenants")
+}
+
+enum TenantUserRole {
+  owner
+  manager
+  employee
+  readonly
+
+  @@map("tenant_user_role")
+}
+
+enum TenantUserStatus {
+  active
+  invited
+  revoked
+
+  @@map("tenant_user_status")
+}
+
+/// Pivote usuario↔comercio, con el rol como atributo de la relación —
+/// Database Specification §3.2. El onboarding inserta acá la primera fila
+/// de cada comercio, con `role = owner`.
+model TenantUser {
+  id         String             @id @default(uuid()) @db.Uuid
+  tenantId   String             @map("tenant_id") @db.Uuid
+  userId     String             @map("user_id") @db.Uuid
+  role       TenantUserRole     @default(owner)
+  status     TenantUserStatus   @default(active)
+  invitedBy  String?            @map("invited_by") @db.Uuid
+  invitedAt  DateTime?          @map("invited_at")
+  joinedAt   DateTime?          @map("joined_at")
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@map("tenant_users")
 }

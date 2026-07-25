@@ -12,3 +12,4 @@ export * from "./components/input.js";
 export * from "./components/form-field.js";
 export * from "./components/alert.js";
 export * from "./components/spinner.js";
+export * from "./components/theme-toggle.js";

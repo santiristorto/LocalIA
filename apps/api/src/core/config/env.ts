@@ -20,14 +20,15 @@ dotenv.config();
 /**
  * Esquema de variables de entorno de `apps/api`.
  *
- * Backend Architecture Specification §2 / §9: toda variable de entorno se valida
- * al arranque — si falta o tiene el tipo incorrecto, la aplicación falla de
- * inmediato en vez de arrancar en un estado inconsistente.
+ * Backend Architecture Specification §2 / §9: toda variable de entorno se
+ * valida al arranque — si falta o tiene el tipo incorrecto, la aplicación
+ * falla de inmediato en vez de arrancar en un estado inconsistente.
  *
- * Sprint 1A: se agrega `SUPABASE_JWT_SECRET`, necesario para verificar las
- * sesiones que emite Supabase Auth. `DATABASE_URL` sigue opcional en este
- * sprint porque ningún endpoint todavía depende de Prisma en runtime (ver
- * nota de la Parte 1 del Sprint 1A sobre generación del cliente de Prisma).
+ * `SUPABASE_URL` es la única variable relacionada a la identidad del
+ * usuario: se usa para construir la URL del JWKS público del proyecto
+ * (`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), contra el que se
+ * verifica la firma de cada JWT (claves asimétricas ES256/RSA — Supabase no
+ * usa un secreto compartido). Ver `core/auth/verify-supabase-jwt.ts`.
  */
 const envSchema = z.object({
   NODE_ENV: z
@@ -38,15 +39,16 @@ const envSchema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
-  DATABASE_URL: z.string().optional(),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL es requerido."),
+  DIRECT_URL: z.string().min(1, "DIRECT_URL es requerido."),
 
-  // Sprint 1A — Backend Architecture Specification §9: el backend verifica
-  // los JWT que emite Supabase Auth contra este secreto compartido.
-  SUPABASE_JWT_SECRET: z
+  // Necesario para construir la URL del JWKS público del proyecto
+  // (`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), que es contra lo que
+  // se verifica la firma de cada JWT — ver `core/auth/verify-supabase-jwt.ts`.
+  SUPABASE_URL: z
     .string()
-    .min(
-      1,
-      "SUPABASE_JWT_SECRET es requerido para verificar sesiones de Supabase Auth",
+    .url(
+      "SUPABASE_URL debe ser una URL válida (ej: https://xxxx.supabase.co).",
     ),
 });
 

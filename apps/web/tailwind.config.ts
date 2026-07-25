@@ -5,10 +5,14 @@ import type { Config } from "tailwindcss";
  *
  * Sprint 0: solo la paleta de color base ya definida en la especificación.
  * El resto de los tokens (espaciado, tipografía, sombras) se amplían a
- * medida que el sistema de diseño (`@localia/ui`) los necesite, a partir
- * del Sprint 3.
+ * medida que el sistema de diseño (`@localia/ui`) los necesite.
+ *
+ * Sprint 1B: `darkMode: "class"` — el tema lo controla `ThemeProvider`
+ * agregando/quitando la clase `dark` en `<html>`, no `prefers-color-scheme`
+ * directo, para poder ofrecer un toggle manual además de "seguir al sistema".
  */
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {

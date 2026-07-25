@@ -1,9 +1,16 @@
 import { Router } from "express";
 
-import { authenticate } from "../../core/middlewares/authenticate.js";
+import { authenticate as defaultAuthenticate } from "../../core/middlewares/authenticate.js";
 import { authorize } from "../../core/middlewares/authorize.js";
-import { getMe } from "./auth.controller.js";
+import type { createAuthController } from "./auth.controller.js";
 
-export const authRouter = Router();
+export function createAuthRouter(
+  controller: ReturnType<typeof createAuthController>,
+  authenticateMiddleware = defaultAuthenticate,
+): Router {
+  const router = Router();
 
-authRouter.get("/me", authenticate, authorize(), getMe);
+  router.get("/me", authenticateMiddleware, authorize(), controller.getMe);
+
+  return router;
+}

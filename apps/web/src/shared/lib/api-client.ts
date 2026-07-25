@@ -1,12 +1,14 @@
+import type { CreateTenantInput, TenantMembership } from "@localia/types";
+
 import { env } from "./env.ts";
 import { supabase } from "./supabase-client.ts";
 
 /**
  * Cliente HTTP mínimo — Frontend Architecture Specification §3 (`shared/lib`).
  *
- * Sprint 1A: agrega el header `Authorization` con el access token de la
- * sesión de Supabase cuando existe. El resto de las convenciones (envelope
- * de error estándar, `X-Tenant-Id`) se agregan cuando exista multi-tenancy.
+ * Agrega el header `Authorization` con el access token de la sesión de
+ * Supabase cuando existe. `MeResponse` incluye `memberships` (usado para
+ * decidir si mostrar el onboarding).
  */
 export interface HealthResponse {
   success: true;
@@ -23,7 +25,13 @@ export interface MeResponse {
     id: string;
     email: string | null;
     fullName: string | null;
+    memberships: TenantMembership[];
   };
+}
+
+export interface CreateTenantResponse {
+  success: true;
+  data: TenantMembership;
 }
 
 export interface ApiErrorBody {
@@ -37,6 +45,15 @@ async function authHeaders(): Promise<HeadersInit> {
   } = await supabase.auth.getSession();
 
   return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+async function parseErrorBody(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as ApiErrorBody;
+    return body.error.message;
+  } catch {
+    return `La API respondió con un error (${response.status}).`;
+  }
 }
 
 export async function fetchHealth(): Promise<HealthResponse> {
@@ -55,9 +72,27 @@ export async function fetchMe(): Promise<MeResponse> {
   });
 
   if (!response.ok) {
-    const body = (await response.json()) as ApiErrorBody;
-    throw new Error(body.error.message);
+    throw new Error(await parseErrorBody(response));
   }
 
   return (await response.json()) as MeResponse;
+}
+
+export async function createTenant(
+  input: CreateTenantInput,
+): Promise<CreateTenantResponse> {
+  const response = await fetch(`${env.apiBaseUrl}/tenants`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(await authHeaders()),
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorBody(response));
+  }
+
+  return (await response.json()) as CreateTenantResponse;
 }

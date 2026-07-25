@@ -8,9 +8,11 @@ import type { ReactNode } from "react";
 /**
  * Frontend Architecture Specification §7 / §12.
  *
- * Configuración única de TanStack Query. El manejo global de errores (401 →
- * logout, 403 → estado de permiso) se agrega en el Sprint 2, cuando exista
- * autenticación real contra la cual reaccionar.
+ * Configuración única de TanStack Query. Pendiente: manejo global de
+ * errores (401 → logout, 403 → estado de permiso) a nivel de
+ * `QueryClient` — hoy cada hook maneja sus propios estados de error
+ * (`isError`), todavía no hay una redirección centralizada ante una sesión
+ * vencida.
  */
 const queryClient = new QueryClient({
   defaultOptions: {

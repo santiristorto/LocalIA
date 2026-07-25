@@ -2,9 +2,11 @@
 
 Empleado IA para comercios sobre WhatsApp. Monorepo oficial del proyecto.
 
-> **Estado:** Sprint 0 — estructura base. Sin funcionalidad de negocio todavía.
-> Toda decisión de producto/arquitectura vive en `docs/` (los diez documentos
-> de diseño ya aprobados) y es la única fuente de verdad del proyecto.
+> **Estado:** Sprint 1B — autenticación (Sprint 1A) + onboarding del comercio.
+> Un usuario se registra, inicia sesión, configura su comercio una sola vez
+> y entra a la app. Toda decisión de producto/arquitectura vive en `docs/`
+> (los diez documentos de diseño ya aprobados) y es la única fuente de
+> verdad del proyecto.
 
 ---
 
@@ -75,14 +77,27 @@ pnpm dev
 
 ## Convenciones
 
-- Cada módulo de `apps/api/src/modules/` sigue el patrón `routes → controller → service → repository` definido en el Backend Architecture Specification. En el Sprint 0 solo existe `health`, sin `service`/`repository` porque no toca base de datos.
-- Cada feature de `apps/web/src/features/` (a partir del Sprint 3) sigue el patrón de organización por dominio del Frontend Architecture Specification.
-- Todo commit pasa por Husky + lint-staged (ESLint + Prettier sobre los archivos modificados).
+- Cada módulo de `apps/api/src/modules/` sigue el patrón `routes → controller → service → repository` definido en el Backend Architecture Specification.
+- Cada feature de `apps/web/src/features/` sigue el patrón de organización por dominio del Frontend Architecture Specification.
+- Todo commit pasa por Husky + lint-staged (ESLint + Prettier sobre los archivos modificados de cada app, con su propio `eslint.config.cjs`).
 - La API está versionada desde el día uno: todas las rutas de negocio cuelgan de `/api/v1`.
+- `apps/api/src/app.ts` no importa el composition root real (`core/container.ts`) — recibe los routers por parámetro. Solo `server.ts` (producción) y `test-utils/build-test-app.ts` (tests) lo instancian.
 
-## Estado de este sprint (Sprint 0)
+## Estado de este sprint (Sprint 1B)
 
-Lo único que existe es infraestructura: manejo de errores, logging estructurado con `correlationId`, envelope de respuesta estándar, y el endpoint `GET /api/v1/health`. No hay autenticación, no hay modelos de negocio en Prisma, no hay integración de WhatsApp ni de IA — eso empieza en el Sprint 1 en adelante, según el `LocalIA — MVP Definitivo y Plan de Sprints`.
+- **Auth (Sprint 1A):** registro, login, recuperación/restablecimiento de contraseña, rutas protegidas, `GET /api/v1/me`.
+- **Onboarding del comercio (Sprint 1B):** un usuario autenticado sin comercio es redirigido a `/onboarding`; completa nombre, rubro, descripción, contacto, ubicación, horarios, logo y colores de marca; se guarda en `tenants`/`tenant_users` con RLS; no se le vuelve a mostrar el formulario una vez completado.
+- Todavía no hay Menú, Employee IA, WhatsApp, Pedidos, Reservas ni Dashboard real — eso empieza en los próximos sprints según el `LocalIA — MVP Definitivo y Plan de Sprints`.
+
+### ⚠️ Limitación conocida del entorno de desarrollo de Claude (no del código)
+
+El cliente de Prisma (`prisma generate`) necesita descargar un binario desde `binaries.prisma.sh`, un dominio no accesible en el sandbox donde se generó este proyecto. Por eso, en ese entorno puntual, `pnpm dev`/`pnpm build`/`pnpm typecheck` de `apps/api` fallan **únicamente** en los 3 archivos que usan `@prisma/client` (`core/database/prisma-client.ts`, `core/database/with-user-context.ts`, `modules/tenants/tenants.repository.ts`). Con acceso normal a internet, este paso soluciona todo:
+
+```bash
+pnpm --filter @localia/api prisma:generate
+```
+
+Los tests **no** dependen de esto — usan un repositorio falso (`test-utils/fake-tenants-repository.ts`) y pasan sin necesidad de Prisma ni de una base de datos real.
 
 ## Documentación
 
