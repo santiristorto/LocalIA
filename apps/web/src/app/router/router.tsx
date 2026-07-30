@@ -6,8 +6,12 @@ import {
   RegisterPage,
   ResetPasswordPage,
 } from "../../features/auth/index.ts";
+import {
+  ComingSoonPage,
+  DashboardHomePage,
+} from "../../features/employee-center/index.ts";
 import { OnboardingPage } from "../../features/onboarding/index.ts";
-import { WelcomePage } from "../../shared/pages/welcome-page.tsx";
+import { AppShellLayout } from "./app-shell-layout.tsx";
 import { ProtectedRoute } from "./protected-route.tsx";
 import { RequireNoOnboarding } from "./require-no-onboarding.tsx";
 import { RequireOnboarding } from "./require-onboarding.tsx";
@@ -15,10 +19,11 @@ import { RequireOnboarding } from "./require-onboarding.tsx";
 /**
  * Frontend Architecture Specification §5.
  *
- * `/onboarding` está protegida en ambos sentidos — `RequireNoOnboarding`
- * evita mostrarla si ya se completó, y las rutas de la app real quedan
- * detrás de `RequireOnboarding`, que exige que exista al menos una
- * membresía antes de dejar pasar.
+ * `AppShellLayout` (TenantProvider + AppLayout) envuelve todas las
+ * pantallas reales de la app, detrás de `RequireOnboarding`. Los módulos
+ * sin pantalla propia todavía (Clientes, Reservas, Agenda, Empleado IA,
+ * Configuración) apuntan a `ComingSoonPage` — el día que cada uno se
+ * construya, solo cambia el `element` de esa ruta puntual.
  */
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -34,7 +39,31 @@ export const router = createBrowserRouter([
       },
       {
         element: <RequireOnboarding />,
-        children: [{ path: "/", element: <WelcomePage /> }],
+        children: [
+          {
+            element: <AppShellLayout />,
+            children: [
+              { path: "/", element: <DashboardHomePage /> },
+              {
+                path: "/customers",
+                element: <ComingSoonPage title="Clientes" />,
+              },
+              {
+                path: "/reservations",
+                element: <ComingSoonPage title="Reservas" />,
+              },
+              { path: "/agenda", element: <ComingSoonPage title="Agenda" /> },
+              {
+                path: "/employee-engine",
+                element: <ComingSoonPage title="Empleado IA" />,
+              },
+              {
+                path: "/settings",
+                element: <ComingSoonPage title="Configuración" />,
+              },
+            ],
+          },
+        ],
       },
     ],
   },

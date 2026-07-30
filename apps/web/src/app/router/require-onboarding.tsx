@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 
-import { Spinner } from "@localia/ui";
+import { Loading } from "@localia/ui";
 
 import { useMe } from "../../shared/hooks/use-me.ts";
 
@@ -13,11 +13,7 @@ export function RequireOnboarding() {
   const { data, isLoading, isError, error } = useMe();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Spinner label="Cargando tu cuenta…" />
-      </div>
-    );
+    return <Loading variant="screen" label="Cargando tu cuenta…" />;
   }
 
   if (isError) {
@@ -29,6 +25,15 @@ export function RequireOnboarding() {
         </p>
       </div>
     );
+  }
+
+  if (!data) {
+    // Destructurar `useMe()` pierde la unión discriminada que TanStack
+    // Query expone en el objeto completo del resultado — TypeScript no
+    // puede probar que "ni loading ni error" implica "data definido".
+    // En la práctica no debería pasar nunca acá; si pasa, mismo fallback
+    // de carga en vez de romper.
+    return <Loading variant="screen" label="Cargando tu cuenta…" />;
   }
 
   const hasTenant = data.data.memberships.length > 0;

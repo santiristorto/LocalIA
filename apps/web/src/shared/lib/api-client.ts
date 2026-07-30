@@ -10,15 +10,6 @@ import { supabase } from "./supabase-client.ts";
  * Supabase cuando existe. `MeResponse` incluye `memberships` (usado para
  * decidir si mostrar el onboarding).
  */
-export interface HealthResponse {
-  success: true;
-  data: {
-    status: string;
-    service: string;
-    timestamp: string;
-  };
-}
-
 export interface MeResponse {
   success: true;
   data: {
@@ -54,16 +45,6 @@ async function parseErrorBody(response: Response): Promise<string> {
   } catch {
     return `La API respondió con un error (${response.status}).`;
   }
-}
-
-export async function fetchHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${env.apiBaseUrl}/health`);
-
-  if (!response.ok) {
-    throw new Error(`Healthcheck falló con status ${response.status}`);
-  }
-
-  return (await response.json()) as HealthResponse;
 }
 
 export async function fetchMe(): Promise<MeResponse> {
