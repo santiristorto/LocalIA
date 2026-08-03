@@ -8,11 +8,6 @@ import type {
   TenantMembership,
 } from "./tenants.types.js";
 
-/** Fila de `tenant_users` con el `tenant` relacionado incluido — forma exacta que devuelve `findMembershipsByUserId`. */
-type TenantUserWithTenant = Prisma.TenantUserGetPayload<{
-  include: { tenant: true };
-}>;
-
 /**
  * Repositorio del módulo `tenants` — única puerta de entrada a Prisma para
  * este dominio (Backend Architecture Specification §6). Todo método pasa
@@ -34,7 +29,7 @@ export class TenantsRepository implements ITenantsRepository {
           orderBy: { createdAt: "asc" },
         });
 
-        return rows.map((row: TenantUserWithTenant) => ({
+        return rows.map((row) => ({
           tenantId: row.tenantId,
           tenantName: row.tenant.name,
           role: row.role,
@@ -63,8 +58,7 @@ export class TenantsRepository implements ITenantsRepository {
             province: input.province,
             country: input.country,
             timezone: input.timezone,
-            openingHours:
-              input.openingHours as unknown as Prisma.TenantCreateInput["openingHours"],
+            openingHours: input.openingHours,
             logoUrl: emptyToNull(input.logoUrl),
             brandPrimaryColor: input.brandPrimaryColor,
             brandSecondaryColor: input.brandSecondaryColor,
