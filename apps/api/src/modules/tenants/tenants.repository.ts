@@ -29,7 +29,7 @@ export class TenantsRepository implements ITenantsRepository {
           orderBy: { createdAt: "asc" },
         });
 
-        return rows.map((row) => ({
+        return rows.map((row: (typeof rows)[number]) => ({
           tenantId: row.tenantId,
           tenantName: row.tenant.name,
           role: row.role,
