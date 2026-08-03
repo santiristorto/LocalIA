@@ -6,6 +6,7 @@ import {
   RegisterPage,
   ResetPasswordPage,
 } from "../../features/auth/index.ts";
+import { CustomersPage } from "../../features/customers/index.ts";
 import {
   ComingSoonPage,
   DashboardHomePage,
@@ -21,9 +22,10 @@ import { RequireOnboarding } from "./require-onboarding.tsx";
  *
  * `AppShellLayout` (TenantProvider + AppLayout) envuelve todas las
  * pantallas reales de la app, detrás de `RequireOnboarding`. Los módulos
- * sin pantalla propia todavía (Clientes, Reservas, Agenda, Empleado IA,
+ * sin pantalla propia todavía (Reservas, Agenda, Empleado IA,
  * Configuración) apuntan a `ComingSoonPage` — el día que cada uno se
- * construya, solo cambia el `element` de esa ruta puntual.
+ * construya, solo cambia el `element` de esa ruta puntual. `Clientes`
+ * (Sprint 3) ya tiene pantalla real: `CustomersPage`.
  */
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -44,10 +46,7 @@ export const router = createBrowserRouter([
             element: <AppShellLayout />,
             children: [
               { path: "/", element: <DashboardHomePage /> },
-              {
-                path: "/customers",
-                element: <ComingSoonPage title="Clientes" />,
-              },
+              { path: "/customers", element: <CustomersPage /> },
               {
                 path: "/reservations",
                 element: <ComingSoonPage title="Reservas" />,

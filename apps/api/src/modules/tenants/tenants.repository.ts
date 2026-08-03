@@ -20,62 +20,68 @@ export class TenantsRepository implements ITenantsRepository {
   ) {}
 
   async findMembershipsByUserId(userId: string): Promise<TenantMembership[]> {
-    return this.runWithUserContext(userId, async (tx) => {
-      const rows = await tx.tenantUser.findMany({
-        where: { userId, status: "active" },
-        include: { tenant: true },
-        orderBy: { createdAt: "asc" },
-      });
+    return this.runWithUserContext(
+      userId,
+      async (tx: Prisma.TransactionClient) => {
+        const rows = await tx.tenantUser.findMany({
+          where: { userId, status: "active" },
+          include: { tenant: true },
+          orderBy: { createdAt: "asc" },
+        });
 
-      return rows.map((row) => ({
-        tenantId: row.tenantId,
-        tenantName: row.tenant.name,
-        role: row.role,
-      }));
-    });
+        return rows.map((row: (typeof rows)[number]) => ({
+          tenantId: row.tenantId,
+          tenantName: row.tenant.name,
+          role: row.role,
+        }));
+      },
+    );
   }
 
   async createTenantWithOwner(
     userId: string,
     input: CreateTenantInput,
   ): Promise<TenantMembership> {
-    return this.runWithUserContext(userId, async (tx) => {
-      const tenant = await tx.tenant.create({
-        data: {
-          name: input.name,
-          slug: slugify(input.name),
-          businessVertical: input.businessVertical,
-          description: emptyToNull(input.description),
-          phone: input.phone,
-          contactEmail: input.contactEmail,
-          address: input.address,
-          city: input.city,
-          province: input.province,
-          country: input.country,
-          timezone: input.timezone,
-          openingHours: input.openingHours as unknown as Prisma.InputJsonValue,
-          logoUrl: emptyToNull(input.logoUrl),
-          brandPrimaryColor: input.brandPrimaryColor,
-          brandSecondaryColor: input.brandSecondaryColor,
-        },
-      });
+    return this.runWithUserContext(
+      userId,
+      async (tx: Prisma.TransactionClient) => {
+        const tenant = await tx.tenant.create({
+          data: {
+            name: input.name,
+            slug: slugify(input.name),
+            businessVertical: input.businessVertical,
+            description: emptyToNull(input.description),
+            phone: input.phone,
+            contactEmail: input.contactEmail,
+            address: input.address,
+            city: input.city,
+            province: input.province,
+            country: input.country,
+            timezone: input.timezone,
+            openingHours: input.openingHours,
+            logoUrl: emptyToNull(input.logoUrl),
+            brandPrimaryColor: input.brandPrimaryColor,
+            brandSecondaryColor: input.brandSecondaryColor,
+          },
+        });
 
-      await tx.tenantUser.create({
-        data: {
+        await tx.tenantUser.create({
+          data: {
+            tenantId: tenant.id,
+            userId,
+            role: "owner",
+            status: "active",
+            joinedAt: new Date(),
+          },
+        });
+
+        return {
           tenantId: tenant.id,
-          userId,
-          role: "owner",
-          status: "active",
-          joinedAt: new Date(),
-        },
-      });
-
-      return {
-        tenantId: tenant.id,
-        tenantName: tenant.name,
-        role: "owner" as const,
-      };
-    });
+          tenantName: tenant.name,
+          role: "owner" as const,
+        };
+      },
+    );
   }
 }
 

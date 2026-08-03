@@ -22,7 +22,7 @@ export async function withUserContext<T>(
   userId: string,
   callback: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.$executeRaw`SELECT set_config('app.current_user_id', ${userId}, true)`;
     return callback(tx);
   });
