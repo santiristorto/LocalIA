@@ -11,6 +11,7 @@ import {
   ComingSoonPage,
   DashboardHomePage,
 } from "../../features/employee-center/index.ts";
+import { MenuPage } from "../../features/menu/index.ts";
 import { OnboardingPage } from "../../features/onboarding/index.ts";
 import { AppShellLayout } from "./app-shell-layout.tsx";
 import { ProtectedRoute } from "./protected-route.tsx";
@@ -25,7 +26,7 @@ import { RequireOnboarding } from "./require-onboarding.tsx";
  * sin pantalla propia todavía (Reservas, Agenda, Empleado IA,
  * Configuración) apuntan a `ComingSoonPage` — el día que cada uno se
  * construya, solo cambia el `element` de esa ruta puntual. `Clientes`
- * (Sprint 3) ya tiene pantalla real: `CustomersPage`.
+ * (Sprint 3) y `Menú` (Sprint 4) ya tienen pantalla real.
  */
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "/", element: <DashboardHomePage /> },
               { path: "/customers", element: <CustomersPage /> },
+              { path: "/menu", element: <MenuPage /> },
               {
                 path: "/reservations",
                 element: <ComingSoonPage title="Reservas" />,

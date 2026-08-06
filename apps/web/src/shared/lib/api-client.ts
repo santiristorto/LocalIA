@@ -47,6 +47,34 @@ async function parseErrorBody(response: Response): Promise<string> {
   }
 }
 
+/**
+ * Helper genérico autenticado — pensado para los `services/` de cada
+ * feature del Employee Center (ver `features/customers`, `features/menu`),
+ * a diferencia de `fetchMe`/`createTenant` de acá arriba, que son
+ * específicos de auth/onboarding. Devuelve directo el campo `data` del
+ * envelope de éxito (`{ success: true, data }`), no el envelope entero.
+ */
+export async function apiFetch<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
+  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(await authHeaders()),
+      ...init?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorBody(response));
+  }
+
+  const body = (await response.json()) as { success: true; data: T };
+  return body.data;
+}
+
 export async function fetchMe(): Promise<MeResponse> {
   const response = await fetch(`${env.apiBaseUrl}/me`, {
     headers: await authHeaders(),

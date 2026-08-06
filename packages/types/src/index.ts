@@ -7,3 +7,4 @@
 
 export * from "./auth.js";
 export * from "./tenants.js";
+export * from "./menu.js";

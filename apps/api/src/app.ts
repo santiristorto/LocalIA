@@ -13,6 +13,7 @@ import { healthRouter } from "./modules/health/health.routes.js";
 export interface AppRouters {
   authRouter: Router;
   tenantsRouter: Router;
+  menuRouter: Router;
 }
 
 /**
@@ -51,6 +52,7 @@ export function createApp(routers: AppRouters): Express {
   v1.use(healthRouter);
   v1.use(routers.authRouter);
   v1.use(routers.tenantsRouter);
+  v1.use(routers.menuRouter);
   app.use("/api/v1", v1);
 
   app.use(notFoundHandler);

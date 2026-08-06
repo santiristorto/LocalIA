@@ -27,6 +27,9 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
+      - name: Generar Prisma Client
+        run: pnpm --filter @localia/api prisma:generate
+
       - name: Lint
         run: pnpm lint
 
@@ -35,9 +38,6 @@ jobs:
 
       - name: Tests
         run: pnpm test
-
-      - name: Generar Prisma Client
-        run: pnpm --filter @localia/api prisma:generate
 
       - name: Build
         run: pnpm build

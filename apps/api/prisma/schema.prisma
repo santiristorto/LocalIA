@@ -89,7 +89,9 @@ model Tenant {
   updatedAt            DateTime         @updatedAt @map("updated_at")
   deletedAt            DateTime?        @map("deleted_at")
 
-  tenantUsers TenantUser[]
+  tenantUsers    TenantUser[]
+  menuCategories MenuCategory[]
+  menuItems      MenuItem[]
 
   @@map("tenants")
 }
@@ -131,4 +133,50 @@ model TenantUser {
 
   @@unique([tenantId, userId])
   @@map("tenant_users")
+}
+
+/// Categoría del menú (ej. "Entradas", "Bebidas") — Sprint 4 (Menú).
+/// `position` define el orden manual dentro del tenant; se asigna en el
+/// backend al crear (al final de la lista existente) — no hay reordenamiento
+/// por drag & drop todavía, ver "Posibles mejoras" del informe del sprint.
+model MenuCategory {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  name        String
+  description String?
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items  MenuItem[]
+
+  @@index([tenantId, position])
+  @@map("menu_categories")
+}
+
+/// Ítem del menú — Sprint 4 (Menú). `tenantId` queda denormalizado acá
+/// además de resolverse vía `category` a propósito: simplifica las políticas
+/// de RLS (chequean `tenant_id` directo, sin subconsulta a `menu_categories`)
+/// y evita que un ítem pueda terminar bajo una categoría de otro tenant.
+model MenuItem {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  categoryId  String    @map("category_id") @db.Uuid
+  name        String
+  description String?
+  price       Decimal   @db.Decimal(10, 2)
+  imageUrl    String?   @map("image_url")
+  isAvailable Boolean   @default(true) @map("is_available")
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  tenant   Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, categoryId, position])
+  @@map("menu_items")
 }
