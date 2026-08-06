@@ -20,7 +20,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans dark:bg-gray-950">
+    <div className="flex h-screen overflow-hidden bg-gray-50 font-sans dark:bg-gray-950">
       <Sidebar
         isMobileOpen={isMobileNavOpen}
         onCloseMobile={() => setIsMobileNavOpen(false)}
@@ -29,7 +29,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onOpenMobileNav={() => setIsMobileNavOpen(true)} />
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+          {children}
+        </main>
       </div>
     </div>
   );

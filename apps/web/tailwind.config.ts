@@ -10,10 +10,23 @@ import type { Config } from "tailwindcss";
  * Sprint 1B: `darkMode: "class"` — el tema lo controla `ThemeProvider`
  * agregando/quitando la clase `dark` en `<html>`, no `prefers-color-scheme`
  * directo, para poder ofrecer un toggle manual además de "seguir al sistema".
+ * Sprint 4: se agregó `packages/ui/src` al `content` — Tailwind solo
+ * generaba CSS para clases que aparecían dentro de `apps/web/src`. Los
+ * componentes de `@localia/ui` (Button, Card, etc.) nunca habían tenido un
+ * problema visible porque sus clases coincidían por casualidad con algo
+ * también usado en `apps/web/src`, pero clases exclusivas de un componente
+ * de `packages/ui` (ej. `z-50`/`translate-x-6` de `Modal`/`Switch`) se
+ * purgaban del todo — el elemento quedaba en el DOM pero sin ningún estilo
+ * real aplicado. Sin este glob, cualquier clase nueva en `@localia/ui` que
+ * no se repita en `apps/web/src` corre el mismo riesgo.
  */
 export default {
   darkMode: "class",
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{ts,tsx}",
+    "../../packages/ui/src/**/*.{ts,tsx}",
+  ],
   theme: {
     extend: {
       colors: {
