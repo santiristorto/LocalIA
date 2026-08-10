@@ -8,12 +8,14 @@ import {
   notFoundHandler,
 } from "./core/middlewares/error-handler.js";
 import { requestContext } from "./core/middlewares/request-context.js";
+import { captureRawBody } from "./core/middlewares/raw-body.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 
 export interface AppRouters {
   authRouter: Router;
   tenantsRouter: Router;
   menuRouter: Router;
+  whatsappRouter: Router;
 }
 
 /**
@@ -33,18 +35,27 @@ export interface AppRouters {
  * — `authenticate` + `authorize` — se aplica por ruta, dentro de cada
  * `*.routes.ts`, no acá):
  *   1. Seguridad de cabeceras (helmet) y CORS
- *   2. Parseo de JSON
+ *   2. Parseo de JSON (con `captureRawBody`: Sprint 5 necesita el body
+ *      crudo, no solo el ya parseado, para validar la firma del webhook
+ *      de WhatsApp — ver `core/middlewares/raw-body.ts`)
  *   3. Contexto de request (correlationId + logger)
  *   4. Rutas versionadas (`/api/v1/...`)
  *   5. 404
  *   6. Manejador de errores centralizado (siempre al final)
+ *
+ * `whatsappRouter` (Sprint 5) es la única excepción a "todo pasa por
+ * `authenticate`": `GET`/`POST /webhooks/whatsapp` los llama Meta, no un
+ * usuario con sesión — no hay JWT que validar ahí. Se protegen con su
+ * propio mecanismo (verify token / firma HMAC), dentro del controller. El
+ * endpoint de prueba de envío sí es autenticado (`/tenants/:tenantId/
+ * whatsapp/test-message`, dentro del mismo router).
  */
 export function createApp(routers: AppRouters): Express {
   const app = express();
 
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
-  app.use(express.json());
+  app.use(express.json({ verify: captureRawBody }));
   app.use(requestContext);
 
   // Versionado de API — API Specification §1.1.
@@ -53,6 +64,7 @@ export function createApp(routers: AppRouters): Express {
   v1.use(routers.authRouter);
   v1.use(routers.tenantsRouter);
   v1.use(routers.menuRouter);
+  v1.use(routers.whatsappRouter);
   app.use("/api/v1", v1);
 
   app.use(notFoundHandler);

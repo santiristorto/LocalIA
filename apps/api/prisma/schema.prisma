@@ -85,13 +85,26 @@ model Tenant {
   brandPrimaryColor    String?          @map("brand_primary_color")
   brandSecondaryColor  String?          @map("brand_secondary_color")
   trialEndsAt          DateTime?        @map("trial_ends_at")
+  /// Sprint 5 (WhatsApp conectado) — un tenant puede tener su propio número
+  /// de WhatsApp Business conectado. `whatsappPhoneNumberId` es lo que Meta
+  /// manda en cada webhook (`entry[].changes[].value.metadata.phone_number_id`)
+  /// y es lo único que permite resolver a qué tenant pertenece un mensaje
+  /// entrante — de ahí el `@unique`. El App Secret / Verify Token del
+  /// webhook NO están acá: son de la App de Meta (una sola, de la
+  /// plataforma), no del tenant — ver `WHATSAPP_APP_SECRET`/
+  /// `WHATSAPP_VERIFY_TOKEN` en `core/config/env.ts`.
+  whatsappPhoneNumberId String?          @unique @map("whatsapp_phone_number_id")
+  whatsappAccessToken   String?          @map("whatsapp_access_token")
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
   deletedAt            DateTime?        @map("deleted_at")
 
-  tenantUsers    TenantUser[]
-  menuCategories MenuCategory[]
-  menuItems      MenuItem[]
+  tenantUsers     TenantUser[]
+  menuCategories  MenuCategory[]
+  menuItems       MenuItem[]
+  customers       Customer[]
+  aiConversations AiConversation[]
+  aiMessages      AiMessage[]
 
   @@map("tenants")
 }
@@ -179,4 +192,105 @@ model MenuItem {
 
   @@index([tenantId, categoryId, position])
   @@map("menu_items")
+}
+
+/// Cliente final del comercio — Sprint 5 (WhatsApp conectado). Primera
+/// fuente real: se crea/actualiza automáticamente al llegar un mensaje de
+/// WhatsApp (`whatsapp.service.ts`), identificado por `phone` (el `wa_id`
+/// que manda Meta). `name` es opcional porque WhatsApp solo entrega un
+/// nombre de perfil libre, sin separación en nombre/apellido — no se
+/// reutilizó la forma `firstName`/`lastName` del tipo de Sprint 3
+/// (`apps/web/.../features/customers/types/customer.ts`) porque ese tipo
+/// era un placeholder de frontend sin contrato real todavía (documentado
+/// así en su momento); este es el primero real y reflejar lo que WhatsApp
+/// realmente entrega. Sin RLS todavía — ver nota en `AiMessage`.
+model Customer {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  name      String?
+  phone     String
+  email     String?
+  notes     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations AiConversation[]
+
+  @@unique([tenantId, phone])
+  @@map("customers")
+}
+
+enum AiConversationChannel {
+  whatsapp
+
+  @@map("ai_conversation_channel")
+}
+
+enum AiConversationStatus {
+  open
+  closed
+
+  @@map("ai_conversation_status")
+}
+
+/// Hilo de conversación de un cliente por canal — Sprint 5. Una sola fila
+/// abierta por `(tenantId, customerId, channel)`: el webhook busca la
+/// conversación existente antes de crear una nueva (`@@unique` de abajo lo
+/// garantiza a nivel de base también, no solo en el service).
+model AiConversation {
+  id            String                 @id @default(uuid()) @db.Uuid
+  tenantId      String                 @map("tenant_id") @db.Uuid
+  customerId    String                 @map("customer_id") @db.Uuid
+  channel       AiConversationChannel  @default(whatsapp)
+  status        AiConversationStatus   @default(open)
+  lastMessageAt DateTime?              @map("last_message_at")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages AiMessage[]
+
+  @@unique([tenantId, customerId, channel])
+  @@index([tenantId, status])
+  @@map("ai_conversations")
+}
+
+enum AiMessageDirection {
+  inbound
+  outbound
+
+  @@map("ai_message_direction")
+}
+
+/// Mensaje individual de una conversación — Sprint 5. `whatsappMessageId`
+/// es el `wamid` que manda Meta en cada mensaje entrante (y el que devuelve
+/// la Cloud API al enviar uno saliente) — `@unique` es el mecanismo real de
+/// idempotencia: el webhook intenta crear el mensaje y, si ya existe
+/// (violación de unicidad), lo trata como ya procesado, sin duplicar nada.
+///
+/// `Customer`/`AiConversation`/`AiMessage` quedan sin RLS por ahora, a
+/// diferencia de `tenants`/`menu_*`: todo el acceso de este sprint es o
+/// bien del webhook (sin usuario autenticado — no hay `current_user_id`
+/// que setear para que las políticas de RLS tengan algo que evaluar) o
+/// bien interno al mismo módulo (`whatsapp.service.ts` ya filtra por
+/// `tenantId` en cada query). Cuando un sprint futuro exponga estas tablas
+/// a un endpoint de usuario (dashboard de conversaciones), ahí sí
+/// corresponde sumar RLS con `withUserContext`, igual que `menu_*`.
+model AiMessage {
+  id                String             @id @default(uuid()) @db.Uuid
+  tenantId          String             @map("tenant_id") @db.Uuid
+  conversationId    String             @map("conversation_id") @db.Uuid
+  direction         AiMessageDirection
+  content           String
+  whatsappMessageId String?            @unique @map("whatsapp_message_id")
+  createdAt         DateTime           @default(now()) @map("created_at")
+
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, conversationId, createdAt])
+  @@map("ai_messages")
 }
