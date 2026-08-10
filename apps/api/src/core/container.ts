@@ -9,6 +9,13 @@ import { createTenantsController } from "../modules/tenants/tenants.controller.j
 import { createTenantsRouter } from "../modules/tenants/tenants.routes.js";
 import { TenantsRepository } from "../modules/tenants/tenants.repository.js";
 import { TenantsService } from "../modules/tenants/tenants.service.js";
+import { AiConversationsRepository } from "../modules/whatsapp/ai-conversations.repository.js";
+import { AiMessagesRepository } from "../modules/whatsapp/ai-messages.repository.js";
+import { CustomersRepository } from "../modules/whatsapp/customers.repository.js";
+import { TenantWhatsappConfigRepository } from "../modules/whatsapp/tenant-whatsapp-config.repository.js";
+import { createWhatsappController } from "../modules/whatsapp/whatsapp.controller.js";
+import { createWhatsappRouter } from "../modules/whatsapp/whatsapp.routes.js";
+import { WhatsappService } from "../modules/whatsapp/whatsapp.service.js";
 import { createRequireTenantRole } from "./middlewares/require-tenant-role.js";
 
 /**
@@ -38,9 +45,26 @@ const menuController = createMenuController(menuService);
 const requireTenantRole = createRequireTenantRole(tenantsService);
 const menuRouter = createMenuRouter(menuController, requireTenantRole);
 
+const customersRepository = new CustomersRepository();
+const aiConversationsRepository = new AiConversationsRepository();
+const aiMessagesRepository = new AiMessagesRepository();
+const tenantWhatsappConfigRepository = new TenantWhatsappConfigRepository();
+const whatsappService = new WhatsappService(
+  customersRepository,
+  aiConversationsRepository,
+  aiMessagesRepository,
+  tenantWhatsappConfigRepository,
+);
+const whatsappController = createWhatsappController(whatsappService);
+const whatsappRouter = createWhatsappRouter(
+  whatsappController,
+  requireTenantRole,
+);
+
 export const container = {
   tenantsService,
   tenantsRouter,
   authRouter,
   menuRouter,
+  whatsappRouter,
 };

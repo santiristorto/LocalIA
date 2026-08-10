@@ -19,6 +19,12 @@ export default defineConfig({
       // `prisma-client.ts`) — ver `test-utils/build-test-app.ts`.
       DATABASE_URL: "postgresql://test:test@localhost:5432/test",
       DIRECT_URL: "postgresql://test:test@localhost:5432/test",
+      // Sprint 5 (WhatsApp conectado). Valor de relleno para
+      // WHATSAPP_APP_SECRET — los tests de firma usan este mismo valor
+      // (ver `whatsapp-signature.test.ts`) para poder generar una firma
+      // válida sin depender de un secreto real.
+      WHATSAPP_APP_SECRET: "test-app-secret",
+      WHATSAPP_VERIFY_TOKEN: "test-verify-token",
     },
   },
 });

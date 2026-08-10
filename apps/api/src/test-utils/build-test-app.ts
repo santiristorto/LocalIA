@@ -8,9 +8,16 @@ import { MenuService } from "../modules/menu/menu.service.js";
 import { createTenantsController } from "../modules/tenants/tenants.controller.js";
 import { createTenantsRouter } from "../modules/tenants/tenants.routes.js";
 import { TenantsService } from "../modules/tenants/tenants.service.js";
+import { createWhatsappController } from "../modules/whatsapp/whatsapp.controller.js";
+import { createWhatsappRouter } from "../modules/whatsapp/whatsapp.routes.js";
+import { WhatsappService } from "../modules/whatsapp/whatsapp.service.js";
 import { createApp } from "../app.js";
+import { FakeAiConversationsRepository } from "./fake-ai-conversations-repository.js";
+import { FakeAiMessagesRepository } from "./fake-ai-messages-repository.js";
+import { FakeCustomersRepository } from "./fake-customers-repository.js";
 import { FakeMenuCategoriesRepository } from "./fake-menu-categories-repository.js";
 import { FakeMenuItemsRepository } from "./fake-menu-items-repository.js";
+import { FakeTenantWhatsappConfigRepository } from "./fake-tenant-whatsapp-config-repository.js";
 import { FakeTenantsRepository } from "./fake-tenants-repository.js";
 import { getTestJWKS } from "./sign-test-jwt.js";
 
@@ -18,8 +25,10 @@ import { getTestJWKS } from "./sign-test-jwt.js";
  * Construye una app Express completa (mismos middlewares, mismas rutas,
  * misma lógica de negocio) pero con reemplazos deliberados para no
  * depender de nada externo en los tests:
- *   - `TenantsRepository`/`MenuCategoriesRepository`/`MenuItemsRepository`
- *     → sus versiones `Fake*` en memoria (sin Prisma/Postgres).
+ *   - `TenantsRepository`/`MenuCategoriesRepository`/`MenuItemsRepository`/
+ *     `CustomersRepository`/`AiConversationsRepository`/
+ *     `AiMessagesRepository`/`TenantWhatsappConfigRepository` → sus
+ *     versiones `Fake*` en memoria (sin Prisma/Postgres).
  *   - `authenticate` real (JWKS remoto de Supabase) → `authenticate` con un
  *     JWKS local (`getTestJWKS`), sin llamadas de red reales.
  */
@@ -52,12 +61,39 @@ export async function buildTestApp() {
     testAuthenticate,
   );
 
-  const app = createApp({ authRouter, tenantsRouter, menuRouter });
+  const customersRepository = new FakeCustomersRepository();
+  const aiConversationsRepository = new FakeAiConversationsRepository();
+  const aiMessagesRepository = new FakeAiMessagesRepository();
+  const tenantWhatsappConfigRepository =
+    new FakeTenantWhatsappConfigRepository();
+  const whatsappService = new WhatsappService(
+    customersRepository,
+    aiConversationsRepository,
+    aiMessagesRepository,
+    tenantWhatsappConfigRepository,
+  );
+  const whatsappController = createWhatsappController(whatsappService);
+  const whatsappRouter = createWhatsappRouter(
+    whatsappController,
+    requireTenantRole,
+    testAuthenticate,
+  );
+
+  const app = createApp({
+    authRouter,
+    tenantsRouter,
+    menuRouter,
+    whatsappRouter,
+  });
 
   return {
     app,
     tenantsRepository,
     menuCategoriesRepository,
     menuItemsRepository,
+    customersRepository,
+    aiConversationsRepository,
+    aiMessagesRepository,
+    tenantWhatsappConfigRepository,
   };
 }

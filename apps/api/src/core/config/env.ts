@@ -50,6 +50,24 @@ const envSchema = z.object({
     .url(
       "SUPABASE_URL debe ser una URL válida (ej: https://xxxx.supabase.co).",
     ),
+
+  // Sprint 5 (WhatsApp conectado). Son de la App de Meta (una sola, de la
+  // plataforma) — no confundir con `whatsappPhoneNumberId`/
+  // `whatsappAccessToken`, que son por tenant y viven en la base
+  // (`Tenant`, no en variables de entorno).
+  WHATSAPP_APP_SECRET: z
+    .string()
+    .min(
+      1,
+      "WHATSAPP_APP_SECRET es requerido para validar la firma del webhook.",
+    ),
+  WHATSAPP_VERIFY_TOKEN: z
+    .string()
+    .min(
+      1,
+      "WHATSAPP_VERIFY_TOKEN es requerido para el desafío de verificación de Meta.",
+    ),
+  WHATSAPP_API_VERSION: z.string().default("v21.0"),
 });
 
 export type Env = z.infer<typeof envSchema>;
